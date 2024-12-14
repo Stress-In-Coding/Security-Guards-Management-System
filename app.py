@@ -19,7 +19,7 @@ HTML_TEMPLATE = '''
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Security Guards Management System API</title>
+    <title>Security Guards Management System</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         .endpoint-section {
@@ -79,7 +79,7 @@ HTML_TEMPLATE = '''
 <body>
     <nav class="navbar navbar-dark bg-dark">
         <div class="container">
-            <span class="navbar-brand mb-0 h1">Security Guards Management System API</span>
+            <span class="navbar-brand mb-0 h1">Security Guards Management System</span>
         </div>
     </nav>
 
@@ -133,7 +133,7 @@ HTML_TEMPLATE = '''
         <h2>Employee Endpoints</h2>
         
         <div class="endpoint-section">
-            <h4><span class="method get">GET</span>/api/employees</h4>
+            <h4><span class="method get">GET</span></h4>
             <p>Get all employees (Requires admin or manager role)</p>
             
             <!-- Add a table to display employees -->
@@ -190,7 +190,7 @@ HTML_TEMPLATE = '''
         <h2>Training Courses Endpoints</h2>
         
         <div class="endpoint-section">
-            <h4><span class="method get">GET</span>/api/courses</h4>
+            <h4><span class="method get">GET</span></h4>
             <p>Get all training courses</p>
             
             <!-- Courses Table -->
@@ -250,7 +250,7 @@ HTML_TEMPLATE = '''
         <h2>Client Endpoints</h2>
         
         <div class="endpoint-section">
-            <h4><span class="method get">GET</span>/api/clients</h4>
+            <h4><span class="method get">GET</span></h4>
             <p>Get all clients (Requires admin role)</p>
             
             <!-- Clients Table -->
@@ -310,7 +310,7 @@ HTML_TEMPLATE = '''
         <h2>Assignment Endpoints</h2>
         
         <div class="endpoint-section">
-            <h4><span class="method post">POST</span>/api/assignments</h4>
+            <h4><span class="method post">POST</span></h4>
             <p>Create new employee assignment (Requires admin or manager role)</p>
             
             <!-- Assignments Table -->
