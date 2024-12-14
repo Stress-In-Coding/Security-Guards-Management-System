@@ -376,6 +376,23 @@ HTML_TEMPLATE = '''
                 </div>
             </div>
         </div>
+
+        <h2>Employee Data</h2>
+        <button class="btn btn-primary mb-3" onclick="loadEmployees()">Load Employees</button>
+        <div class="table-responsive">
+            <table class="table table-striped" id="employeesTable">
+                <thead>
+                    <tr>
+                        <th>Employee ID</th>
+                        <th>Details</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="employeesTableBody">
+                    <!-- Employee data will be populated here -->
+                </tbody>
+            </table>
+        </div>
     </div>
 
     <footer class="bg-light py-3 mt-5">
@@ -606,6 +623,119 @@ HTML_TEMPLATE = '''
             loadAssignments();
         }
     });
+
+    function loadEmployees() {
+        fetch('/api/employees', {
+            headers: {
+                'Authorization': 'Bearer ' + localStorage.getItem('token')
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            const tableBody = document.getElementById('employeesTableBody');
+            tableBody.innerHTML = '';
+            
+            data.data.forEach(employee => {
+                tableBody.innerHTML += `
+                    <tr>
+                        <td>${employee.employee_id}</td>
+                        <td>${JSON.stringify(employee.details)}</td>
+                        <td>
+                            <button class="btn btn-warning btn-sm" onclick="editEmployee('${employee.employee_id}')">Edit</button>
+                            <button class="btn btn-danger btn-sm" onclick="deleteEmployee('${employee.employee_id}')">Delete</button>
+                        </td>
+                    </tr>
+                `;
+            });
+        })
+        .catch(error => console.error('Error:', error));
+    }
+
+    function addEmployee() {
+        const form = document.getElementById('addEmployeeForm');
+        const formData = new FormData(form);
+        const employeeData = Object.fromEntries(formData);
+
+        fetch('/api/employees', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + localStorage.getItem('token')
+            },
+            body: JSON.stringify(employeeData)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.message) {
+                alert('Employee added successfully');
+                $('#addEmployeeModal').modal('hide');
+                loadEmployees();
+                form.reset();
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    }
+
+    function editEmployee(employeeId) {
+        // Fetch employee data and populate the form for editing
+        fetch(`/api/employees/${employeeId}`, {
+            headers: {
+                'Authorization': 'Bearer ' + localStorage.getItem('token')
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            // Populate the form with employee data
+            const form = document.getElementById('addEmployeeForm');
+            form.elements['employee_id'].value = data.employee_id;
+            form.elements['details'].value = JSON.stringify(data.details);
+            $('#addEmployeeModal').modal('show');
+        })
+        .catch(error => console.error('Error:', error));
+    }
+
+    function updateEmployee() {
+        const form = document.getElementById('addEmployeeForm');
+        const employeeId = form.elements['employee_id'].value;
+        const formData = new FormData(form);
+        const employeeData = Object.fromEntries(formData);
+
+        fetch(`/api/employees/${employeeId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + localStorage.getItem('token')
+            },
+            body: JSON.stringify(employeeData)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.message) {
+                alert('Employee updated successfully');
+                $('#addEmployeeModal').modal('hide');
+                loadEmployees();
+                form.reset();
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    }
+
+    function deleteEmployee(employeeId) {
+        fetch(`/api/employees/${employeeId}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': 'Bearer ' + localStorage.getItem('token')
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.message) {
+                alert('Employee deleted successfully');
+                loadEmployees();
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    }
     </script>
 </body>
 </html>
@@ -774,19 +904,58 @@ def get_employees():
 @jwt_required()
 @role_required(['admin'])
 def create_employee():
-    pass
+    try:
+        data = request.get_json()
+        if not data or 'details' not in data:
+            return jsonify({"error": "Missing required fields"}), 400
+
+        employee = Employee(
+            employee_id=str(uuid.uuid4()),
+            details=data['details']
+        )
+        db.session.add(employee)
+        db.session.commit()
+        return jsonify({"message": "Employee created successfully"}), 201
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 400
+
+@app.route('/api/employees/<employee_id>', methods=['GET'])
+@jwt_required()
+@role_required(['admin', 'manager'])
+def get_employee(employee_id):
+    employee = Employee.query.get_or_404(employee_id)
+    return jsonify(employee.to_dict()), 200
 
 @app.route('/api/employees/<employee_id>', methods=['PUT'])
 @jwt_required()
 @role_required(['admin'])
-def update_employee():
-    pass
+def update_employee(employee_id):
+    try:
+        employee = Employee.query.get_or_404(employee_id)
+        data = request.get_json()
+        
+        if 'details' in data:
+            employee.details = data['details']
+        
+        db.session.commit()
+        return jsonify({"message": "Employee updated successfully"}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 400
 
 @app.route('/api/employees/<employee_id>', methods=['DELETE'])
 @jwt_required()
 @role_required(['admin'])
-def delete_employee():
-    pass
+def delete_employee(employee_id):
+    try:
+        employee = Employee.query.get_or_404(employee_id)
+        db.session.delete(employee)
+        db.session.commit()
+        return jsonify({"message": "Employee deleted successfully"}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 400
 
 # Training Courses Routes
 @app.route('/api/courses', methods=['GET'])
@@ -1034,6 +1203,51 @@ def test_delete_employee():
 @pytest.fixture
 def mock_db():
     pass
+
+# User CRUD operations
+@app.route('/api/users', methods=['GET'])
+@jwt_required()
+@role_required(['admin'])
+def get_users():
+    users = User.query.all()
+    return jsonify({"data": [user.to_dict() for user in users]}), 200
+
+@app.route('/api/users', methods=['POST'])
+@jwt_required()
+@role_required(['admin'])
+def create_user():
+    data = request.get_json()
+    user = User(
+        user_id=str(uuid.uuid4()),
+        username=data['username'],
+        password_hash=generate_password_hash(data['password']),
+        role=data['role']
+    )
+    db.session.add(user)
+    db.session.commit()
+    return jsonify({"message": "User created successfully"}), 201
+
+@app.route('/api/users/<user_id>', methods=['PUT'])
+@jwt_required()
+@role_required(['admin'])
+def update_user(user_id):
+    user = User.query.get_or_404(user_id)
+    data = request.get_json()
+    user.username = data['username']
+    user.role = data['role']
+    db.session.commit()
+    return jsonify({"message": "User updated successfully"}), 200
+
+@app.route('/api/users/<user_id>', methods=['DELETE'])
+@jwt_required()
+@role_required(['admin'])
+def delete_user(user_id):
+    user = User.query.get_or_404(user_id)
+    db.session.delete(user)
+    db.session.commit()
+    return jsonify({"message": "User deleted successfully"}), 200
+
+# Repeat similar CRUD operations for Courses, Clients, and Assignments
 
 if __name__ == '__main__':
     with app.app_context():
